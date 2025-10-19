@@ -6,3 +6,4 @@ pydantic
 apscheduler
 python-dotenv
 google-generativeai
+psycopg[binary]

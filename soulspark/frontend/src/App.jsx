@@ -1,18 +1,12 @@
 import { useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import OneSignal from 'react-onesignal'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import JournalPage from './pages/JournalPage'
 // Settings removed
 
 export default function App(){
-  useEffect(()=>{
-    const appId = import.meta.env.VITE_ONESIGNAL_APP_ID
-    if(appId){
-      OneSignal.init({ appId })
-    }
-  },[])
+  // OneSignal removed
 
   // Night mode subtle change: after 8pm
   useEffect(()=>{

@@ -16,7 +16,7 @@ from .routes import mood as mood_routes
 from .routes import journal as journal_routes
 from .utils.ai import generate_ai_reflection
 
-app = FastAPI(title="SoulSpark API", version="1.0.0")
+app = FastAPI(title="Manna API", version="1.0.0")
 
 # CORS
 frontend_origin = os.getenv("FRONTEND_ORIGIN")

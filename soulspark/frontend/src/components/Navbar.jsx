@@ -9,7 +9,7 @@ export default function Navbar(){
         <motion.nav initial={{opacity:0, y:-10}} animate={{opacity:1, y:0}} className="glass flex items-center justify-between p-3">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400/60 via-purple-400/60 to-yellow-300/60" />
-            <span className="font-display text-xl">SoulSpark</span>
+            <span className="font-display text-xl">Manna</span>
           </Link>
           <div className="flex items-center gap-1">
             <NavLink className={navClass} to="/">Home</NavLink>

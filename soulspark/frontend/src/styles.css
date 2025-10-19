@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  --bg-gradient: radial-gradient(1200px 600px at 20% 20%, rgba(135,206,250,0.25), transparent 60%),
+                 radial-gradient(800px 400px at 80% 30%, rgba(186,85,211,0.2), transparent 60%),
+                 radial-gradient(1000px 500px at 50% 90%, rgba(255,215,0,0.12), transparent 60%),
+                 linear-gradient(180deg, #0f172a, #020617);
+}
+
+html, body, #root{
+  height:100%;
+}
+
+body {
+  @apply bg-slate-950 text-white antialiased font-sans;
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+}
+
+.glass {
+  @apply bg-white/10 backdrop-blur-xl border border-white/10 shadow-lg rounded-2xl;
+}
+
+.card-hover {
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(255,255,255,.08);
+}
+
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 8px; }

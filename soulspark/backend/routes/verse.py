@@ -31,6 +31,20 @@ def _parse_reference(verse_text: str) -> Optional[str]:
     return None
 
 
+def _strip_reference_from_text(text: str, reference: Optional[str]) -> str:
+    if not reference:
+        return text.strip()
+    # Pattern: "... verse text ... - Book Chapter:Verse" (possible translation in parens already in ref)
+    if " - " in text:
+        left, right = text.rsplit(" - ", 1)
+        if right.strip() == reference:
+            return left.strip()
+    # Pattern: "... verse text ... (Book Chapter:Verse)"
+    if text.endswith(")") and "(" in text and text[text.rfind("(") + 1 : -1].strip() == reference:
+        return text[: text.rfind("(")].strip()
+    return text.strip()
+
+
 async def _fetch_bible_verse() -> tuple[str, Optional[str]]:
     async with httpx.AsyncClient(timeout=15.0) as client:
         resp = await client.get(BIBLE_API_URL)
@@ -38,7 +52,8 @@ async def _fetch_bible_verse() -> tuple[str, Optional[str]]:
             raise HTTPException(status_code=502, detail="Bible API unavailable")
         text = resp.text.strip()
         reference = _parse_reference(text)
-        return text, reference
+        clean_text = _strip_reference_from_text(text, reference)
+        return clean_text, reference
 
 
 @router.get("/today", response_model=DailyVerseResponse)
@@ -48,10 +63,11 @@ async def get_today_verse() -> DailyVerseResponse:
         stmt = select(DailyVerse).where(DailyVerse.date == today)
         existing = session.exec(stmt).first()
         if existing:
+            display_text = _strip_reference_from_text(existing.verse_text or "", existing.reference)
             return DailyVerseResponse(
                 date=existing.date,
                 reference=existing.reference,
-                verse=existing.verse_text,
+                verse=display_text,
                 reflection=existing.reflection,
                 encouragement=existing.encouragement,
             )

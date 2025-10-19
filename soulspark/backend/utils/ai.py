@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from typing import Dict, Optional
 
 try:
@@ -18,6 +19,7 @@ SYSTEM_PROMPT = (
 def _get_model():
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key or genai is None:
+        print('No keyyyyyy')
         return None
     try:
         genai.configure(api_key=api_key)
@@ -26,53 +28,95 @@ def _get_model():
         return None
 
 
+# Basic cleanup to remove markdown/labels from AI output
+_MARKDOWN_PATTERNS = [
+    (re.compile(r"\*\*+"), ""),  # bold markers
+    (re.compile(r"__+"), ""),     # underline markers
+    (re.compile(r"`+"), ""),      # backticks
+    (re.compile(r"^#+\s*", re.MULTILINE), ""),  # headings
+    (re.compile(r"\bOne[- ]Sentence:?\b", re.IGNORECASE), ""),
+    (re.compile(r"\bReflection:?\b", re.IGNORECASE), ""),
+    (re.compile(r"\bEncouragement:?\b", re.IGNORECASE), ""),
+]
+
+
+def _sanitize_text(text: str) -> str:
+    if not text:
+        return ""
+    s = text.strip()
+    for pattern, repl in _MARKDOWN_PATTERNS:
+        s = pattern.sub(repl, s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
 def generate_ai_reflection(verse_text: str, reference: Optional[str] = None) -> Dict[str, str]:
     model = _get_model()
     prompt = (
-        f"System Prompt: {SYSTEM_PROMPT}\n\n"
-        f"User Input: Provide a brief reflection and one-sentence encouragement for this Bible verse.\n"
-        f"Verse: {reference or ''} - {verse_text}"
+        f"{SYSTEM_PROMPT}\n\n"
+        "Task: Given the verse below, write a concise reflection and a one-sentence encouragement.\n"
+        "- Do NOT use markdown, asterisks, headings, or labels.\n"
+        "- Output JSON only with keys: reflection, encouragement.\n"
+        f"Verse: {reference or ''} - {verse_text}\n\n"
+        "Example JSON: {\"reflection\": \"Short insight...\", \"encouragement\": \"One kind sentence.\"}"
     )
     if model is None:
-        # Fallback simple heuristic
         enc = "Take heart—God is with you and will guide you today."
         refl = (
             "This verse reminds us of God's faithful presence and the peace He offers to those who trust Him."
         )
-        return {"reflection": refl, "encouragement": enc}
+        return {"reflection": _sanitize_text(refl), "encouragement": _sanitize_text(enc)}
 
     try:
         response = model.generate_content(prompt)
-        text = response.text.strip() if hasattr(response, "text") else ""
-        # Very simple parsing: try to split into two parts
-        if "Encouragement:" in text:
-            parts = text.split("Encouragement:")
-            reflection = parts[0].strip().replace("Reflection:", "").strip()
-            encouragement = parts[1].strip()
-        else:
-            # If no clear structure, just use the first sentence as reflection, rest as encouragement
-            sentences = text.split(".")
-            reflection = (sentences[0] + ".").strip() if sentences and sentences[0] else text
-            encouragement = " ".join(sentences[1:]).strip() or (
-                "Take heart—God is with you and will guide you today."
-            )
+        raw = response.text.strip() if hasattr(response, "text") else ""
+        import json
+        reflection = ""
+        encouragement = ""
+        try:
+            start = raw.find("{")
+            end = raw.rfind("}")
+            payload = json.loads(raw[start : end + 1]) if start != -1 and end != -1 else json.loads(raw)
+            reflection = str(payload.get("reflection", ""))
+            encouragement = str(payload.get("encouragement", ""))
+        except Exception:
+            # Fallback: split by lines
+            lines = [l for l in re.split(r"[\n\r]+", raw) if l.strip()]
+            if lines:
+                reflection = lines[0]
+                encouragement = " ".join(lines[1:])
+        reflection = _sanitize_text(reflection)
+        encouragement = _sanitize_text(encouragement)
+        if not encouragement:
+            encouragement = "Take heart—God is with you today."
         return {"reflection": reflection, "encouragement": encouragement}
     except Exception:
         enc = "Take heart—God is with you and will guide you today."
         refl = (
             "This verse reminds us of God's faithful presence and the peace He offers to those who trust Him."
         )
-        return {"reflection": refl, "encouragement": enc}
+        return {"reflection": _sanitize_text(refl), "encouragement": _sanitize_text(enc)}
 
 
 def generate_encouragement(mood: str, text: Optional[str] = None) -> Dict[str, str]:
     model = _get_model()
-    user_input = text or f"I'm feeling {mood}."
+    mood_text = (mood or "").strip()
+    user_text = (text or "").strip()
+    context = {"mood": mood_text or None, "text": user_text or None}
     prompt = (
-        f"System Prompt:\n{SYSTEM_PROMPT}\n\n"
-        f"User Input:\n{user_input}\n\n"
-        "Output Format (JSON):\n"
-        "{\n\"verse\": \"(Book Chapter:Verse)\",\n\"message\": \"(summary)\",\n\"encouragement\": \"(motivation)\"\n}"
+        f"{SYSTEM_PROMPT}\n\n"
+        "Task: Create a short, practical encouragement tailored to the user's state.\n"
+        "Rules:\n"
+        "- If both mood and text are provided, use both.\n"
+        "- If only text is provided, base the response on the text.\n"
+        "- If only mood is provided, base the response on the mood.\n"
+        "- Always include one fitting Bible verse reference and a one-sentence summary of it.\n"
+        "- In the JSON 'verse' field, include BOTH the reference and the full verse text, formatted as: 'Book Chapter:Verse — <full verse text>'.\n"
+        "- Prefer a common translation (e.g., NIV/ESV) and keep it concise (<= 1–2 sentences).\n"
+        "- Do NOT use markdown, asterisks, headings, or labels.\n"
+        "Output strictly as JSON with keys: verse, message, encouragement.\n\n"
+        f"Context JSON: {context}\n\n"
+        "Example JSON: {\"verse\": \"Psalm 23:1 — The Lord is my shepherd; I shall not want.\", \"message\": \"God shepherds and provides.\", \"encouragement\": \"Let Him guide your steps today.\"}"
     )
 
     if model is None:
@@ -100,30 +144,24 @@ def generate_encouragement(mood: str, text: Optional[str] = None) -> Dict[str, s
             },
         }
         return presets.get(mood.lower(), presets["hopeful"])  # default
+        # print('heyyyyyyyyyyyyyyyyyyyyyyyyyy')
 
     try:
         response = model.generate_content(prompt)
         raw = response.text.strip() if hasattr(response, "text") else ""
-        # Try parse JSON inside the text
+        # Try parse JSON in output (allow extra text around)
         import json
         start = raw.find("{")
         end = raw.rfind("}")
-        if start != -1 and end != -1:
-            payload = json.loads(raw[start : end + 1])
-            return {
-                "verse": str(payload.get("verse", "")),
-                "message": str(payload.get("message", "")),
-                "encouragement": str(payload.get("encouragement", "")),
-            }
-        # Fallback simplistic split
-        return {
-            "verse": "Psalm 23:1",
-            "message": "The Lord is our Shepherd who cares for us.",
-            "encouragement": raw or "God is guiding you gently today.",
-        }
+        payload = json.loads(raw[start : end + 1]) if start != -1 and end != -1 else json.loads(raw)
+        verse = _sanitize_text(str(payload.get("verse", "")))
+        message = _sanitize_text(str(payload.get("message", "")))
+        encouragement = _sanitize_text(str(payload.get("encouragement", "")))
+        return {"verse": verse, "message": message, "encouragement": encouragement}
     except Exception:
+        
         return {
             "verse": "Isaiah 41:10",
             "message": "God strengthens and upholds those who fear not.",
-            "encouragement": "Do not be afraid—He is with you and will help you.",
+            "encouragement": _sanitize_text("Do not be afraid—He is with you and will help you."),
         }

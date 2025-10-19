@@ -14,7 +14,7 @@ export default function Navbar(){
           <div className="flex items-center gap-1">
             <NavLink className={navClass} to="/">Home</NavLink>
             <NavLink className={navClass} to="/journal">Journal</NavLink>
-            <NavLink className={navClass} to="/settings">Settings</NavLink>
+            {/* Settings removed */}
           </div>
         </motion.nav>
       </div>

@@ -32,7 +32,7 @@ class JournalUpdate(BaseModel):
 
 
 class EncouragementRequest(BaseModel):
-    mood: str
+    mood: Optional[str] = None
     text: Optional[str] = None
 
 

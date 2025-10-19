@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, date
+from datetime import datetime, date as Date
 from typing import Optional
 from sqlmodel import SQLModel, Field
 
@@ -16,7 +16,8 @@ class JournalEntry(SQLModel, table=True):
 
 class DailyVerse(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    date: date = Field(index=True, unique=True)
+    # Avoid name clash between field name and type annotation in Pydantic v2
+    date: Date = Field(index=True, sa_column_kwargs={"unique": True})
     reference: Optional[str] = None
     verse_text: str
     reflection: Optional[str] = None

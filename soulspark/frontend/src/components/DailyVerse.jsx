@@ -16,10 +16,22 @@ export default function DailyVerse(){
     return ()=>{ mounted=false }
   },[])
 
-  if(loading) return <div className="glass p-8 text-center">Loading today\'s verse...</div>
+  if(loading) return <div className="glass p-8 text-center">Loading today's verse...</div>
   if(error) return <div className="glass p-8 text-center text-red-300">{error}</div>
 
-  const { verse, reference, reflection, encouragement } = data || {}
+  const { verse, reflection, encouragement } = data || {}
+
+  // Sanitize any markdown/special markers that might leak from AI output or legacy rows
+  const clean = (s) => (s || '')
+    .replace(/[\*`_#]/g, '')
+    .replace(/\bOne[- ]Sentence:?\b/gi, '')
+    .replace(/\bReflection:?\b/gi, '')
+    .replace(/\bEncouragement:?\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const reflectionClean = clean(reflection)
+  const encouragementClean = clean(encouragement)
 
   return (
     <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{duration: .6}} className="glass p-6 md:p-8 card-hover">
@@ -28,20 +40,19 @@ export default function DailyVerse(){
         <h1 className="font-display text-2xl md:text-4xl leading-relaxed text-white/95">
           {verse}
         </h1>
-        {reference && (
-          <div className="mt-2 text-white/70">— {reference}</div>
-        )}
+        {/* Reference hidden to avoid duplicate display */}
       </div>
-      {reflection && (
+      {reflectionClean && (
         <motion.p initial={{opacity:0}} animate={{opacity:1}} transition={{delay:.2}} className="mt-6 text-white/80">
-          <span className="font-semibold">Reflection:</span> {reflection}
+          <span className="font-semibold">Reflection:</span> {reflectionClean}
         </motion.p>
       )}
-      {encouragement && (
+      {encouragementClean && (
         <motion.p initial={{opacity:0}} animate={{opacity:1}} transition={{delay:.3}} className="mt-3 text-white/90">
-          <span className="font-semibold">Encouragement:</span> {encouragement}
+          <span className="font-semibold">Encouragement:</span> {encouragementClean}
         </motion.p>
       )}
     </motion.div>
   )
 }
+

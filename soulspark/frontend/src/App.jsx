@@ -4,7 +4,7 @@ import OneSignal from 'react-onesignal'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import JournalPage from './pages/JournalPage'
-import Settings from './pages/Settings'
+// Settings removed
 
 export default function App(){
   useEffect(()=>{
@@ -34,7 +34,8 @@ export default function App(){
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/journal" element={<JournalPage />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route path="*" element={<Home />} />
+        {/* Settings route removed */}
       </Routes>
     </div>
   )

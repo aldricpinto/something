@@ -165,3 +165,25 @@ def generate_encouragement(mood: str, text: Optional[str] = None) -> Dict[str, s
             "message": "God strengthens and upholds those who fear not.",
             "encouragement": _sanitize_text("Do not be afraid—He is with you and will help you."),
         }
+
+
+def generate_journal_answer(question: str, entries_text: str) -> str:
+    model = _get_model()
+    base_prompt = (
+        f"{SYSTEM_PROMPT}\n\n"
+        "Task: Answer the user's question grounded in the Bible and the user's journal excerpts.\n"
+        "- Prioritize empathy, clarity, and Scriptural faithfulness.\n"
+        "- Include at least one Bible reference with a concise paraphrase.\n"
+        "- Do NOT use markdown or special formatting; return clean plain text.\n"
+    )
+    prompt = base_prompt + f"\nJournal excerpts (may be partial):\n{entries_text}\n\nQuestion: {question}"
+
+    if model is None:
+        return _sanitize_text("God cares for what you shared. Consider Philippians 4:6-7—bring your concerns to Him in prayer, trusting His peace to guard your heart and mind.")
+
+    try:
+        resp = model.generate_content(prompt)
+        raw = resp.text.strip() if hasattr(resp, "text") else ""
+        return _sanitize_text(raw)
+    except Exception:
+        return _sanitize_text("Seek the Lord in prayer and Scripture today; Psalm 34:17-18 reminds us that He is near to the brokenhearted and saves those crushed in spirit.")

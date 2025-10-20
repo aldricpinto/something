@@ -14,6 +14,8 @@ from .models.journal import DailyVerse
 from .routes import verse as verse_routes
 from .routes import mood as mood_routes
 from .routes import journal as journal_routes
+from .routes import auth as auth_routes
+from .routes import qa as qa_routes
 from .utils.ai import generate_ai_reflection
 
 app = FastAPI(title="Manna API", version="1.0.0")
@@ -33,6 +35,8 @@ app.add_middleware(
 app.include_router(verse_routes.router)
 app.include_router(mood_routes.router)
 app.include_router(journal_routes.router)
+app.include_router(auth_routes.router)
+app.include_router(qa_routes.router)
 
 
 scheduler: AsyncIOScheduler | None = None

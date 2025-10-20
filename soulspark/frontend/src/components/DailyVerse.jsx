@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchTodayVerse } from '../utils/api'
 import { motion } from 'framer-motion'
+import { fadeInUp, spring } from '../utils/anim'
 
 export default function DailyVerse(){
   const [data,setData] = useState(null)
@@ -19,7 +20,7 @@ export default function DailyVerse(){
   if(loading) return <div className="glass p-8 text-center">Loading today's verse...</div>
   if(error) return <div className="glass p-8 text-center text-red-300">{error}</div>
 
-  const { verse, reflection, encouragement } = data || {}
+  const { verse, reference, reflection, encouragement } = data || {}
 
   // Sanitize any markdown/special markers that might leak from AI output or legacy rows
   const clean = (s) => (s || '')
@@ -32,27 +33,35 @@ export default function DailyVerse(){
 
   const reflectionClean = clean(reflection)
   const encouragementClean = clean(encouragement)
+  const referenceClean = clean(reference)
 
   return (
-    <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{duration: .6}} className="glass p-6 md:p-8 card-hover">
+    <motion.div
+      variants={fadeInUp}
+      initial="hidden"
+      animate="show"
+      transition={spring}
+      className="glass p-6 md:p-8 card-hover"
+    >
       <div className="text-center">
         <div className="text-sm text-white/70 mb-2 uppercase tracking-widest">Daily Verse</div>
         <h1 className="font-display text-2xl md:text-4xl leading-relaxed text-white/95">
           {verse}
         </h1>
-        {/* Reference hidden to avoid duplicate display */}
+        {referenceClean && (
+          <div className="mt-2 text-white/70">— {referenceClean}</div>
+        )}
       </div>
       {reflectionClean && (
-        <motion.p initial={{opacity:0}} animate={{opacity:1}} transition={{delay:.2}} className="mt-6 text-white/80">
+        <motion.p variants={fadeInUp} initial="hidden" animate="show" transition={{...spring, delay: .1}} className="mt-6 text-white/80">
           <span className="font-semibold">Reflection:</span> {reflectionClean}
         </motion.p>
       )}
       {encouragementClean && (
-        <motion.p initial={{opacity:0}} animate={{opacity:1}} transition={{delay:.3}} className="mt-3 text-white/90">
+        <motion.p variants={fadeInUp} initial="hidden" animate="show" transition={{...spring, delay: .15}} className="mt-3 text-white/90">
           <span className="font-semibold">Encouragement:</span> {encouragementClean}
         </motion.p>
       )}
     </motion.div>
   )
 }
-

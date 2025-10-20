@@ -7,3 +7,5 @@ apscheduler
 python-dotenv
 google-generativeai
 psycopg[binary]
+google-auth
+PyJWT

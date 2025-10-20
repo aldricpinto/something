@@ -7,6 +7,7 @@ from sqlmodel import SQLModel, Field
 
 class JournalEntry(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: Optional[int] = Field(default=None, foreign_key="user.id", index=True)
     content: str
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     private: bool = Field(default=False, index=True)

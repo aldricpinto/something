@@ -6,6 +6,16 @@ export const api = axios.create({
   baseURL: API_URL,
 })
 
+// Attach Authorization token if present
+api.interceptors.request.use((config)=>{
+  const t = localStorage.getItem('manna_token')
+  if(t){
+    config.headers = config.headers || {}
+    config.headers.Authorization = `Bearer ${t}`
+  }
+  return config
+})
+
 export async function fetchTodayVerse() {
   const { data } = await api.get('/verse/today')
   return data
@@ -33,5 +43,15 @@ export async function updateJournal(id, entry) {
 
 export async function deleteJournal(id) {
   const { data } = await api.delete(`/journal/${id}`)
+  return data
+}
+
+export async function authWithGoogle(id_token){
+  const { data } = await api.post('/auth/google', { id_token })
+  return data
+}
+
+export async function askJournal(question){
+  const { data } = await api.post('/journal/ask', { question })
   return data
 }

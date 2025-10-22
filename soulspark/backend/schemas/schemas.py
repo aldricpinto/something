@@ -48,3 +48,6 @@ class DailyVerseResponse(BaseModel):
     verse: str
     reflection: Optional[str]
     encouragement: Optional[str]
+
+
+## Mass schemas removed for now

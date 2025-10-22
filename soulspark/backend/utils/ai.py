@@ -187,3 +187,56 @@ def generate_journal_answer(question: str, entries_text: str) -> str:
         return _sanitize_text(raw)
     except Exception:
         return _sanitize_text("Seek the Lord in prayer and Scripture today; Psalm 34:17-18 reminds us that He is near to the brokenhearted and saves those crushed in spirit.")
+
+
+def generate_mass_reflection(readings_text: str) -> Dict[str, str]:
+    model = _get_model()
+    prompt = (
+        f"{SYSTEM_PROMPT}\n\n"
+        "Task: Based on today's Catholic Mass readings, write a concise reflection (3–5 sentences) and a one-sentence encouragement.\n"
+        "- Return JSON with keys: reflection, encouragement.\n"
+        "- Do NOT use markdown or labels.\n\n"
+        f"Readings Summary:\n{readings_text}\n\n"
+        "Example JSON: {\"reflection\": \"Short synthesis...\", \"encouragement\": \"One supportive sentence.\"}"
+    )
+    if model is None:
+        return {
+            "reflection": _sanitize_text("Today's readings invite deeper trust in God's providence and practical charity toward others."),
+            "encouragement": _sanitize_text("Take one concrete step of love today—He walks with you."),
+        }
+    try:
+        resp = model.generate_content(prompt)
+        raw = resp.text.strip() if hasattr(resp, "text") else ""
+        import json
+        start = raw.find("{")
+        end = raw.rfind("}")
+        payload = json.loads(raw[start : end + 1]) if start != -1 and end != -1 else json.loads(raw)
+        return {
+            "reflection": _sanitize_text(str(payload.get("reflection", ""))),
+            "encouragement": _sanitize_text(str(payload.get("encouragement", ""))),
+        }
+    except Exception:
+        return {
+            "reflection": _sanitize_text("Let today's readings shape your heart and decisions in Christ."),
+            "encouragement": _sanitize_text("Trust God's nearness and take the next faithful step."),
+        }
+
+
+def generate_mass_answer(question: str, readings_text: str) -> str:
+    model = _get_model()
+    base = (
+        f"{SYSTEM_PROMPT}\n\n"
+        "Task: Answer the user's question based only on today's Mass readings.\n"
+        "- Be pastoral, brief, and faithful to Scripture.\n"
+        "- Include at least one reference with a short paraphrase.\n"
+        "- Plain text only (no markdown).\n"
+    )
+    prompt = base + f"\nReadings:\n{readings_text}\n\nQuestion: {question}"
+    if model is None:
+        return _sanitize_text("Consider how today's readings encourage trust and charity—see John 14:27 for Christ's peace.")
+    try:
+        resp = model.generate_content(prompt)
+        raw = resp.text.strip() if hasattr(resp, "text") else ""
+        return _sanitize_text(raw)
+    except Exception:
+        return _sanitize_text("Let God’s Word guide you with peace today.")

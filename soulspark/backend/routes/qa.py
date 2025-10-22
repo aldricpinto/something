@@ -9,6 +9,7 @@ from ..database import get_session
 from ..models.journal import JournalEntry
 from ..models.user import User
 from ..utils.ai import generate_journal_answer
+from ..utils.crypto import decrypt_text
 
 
 class AskRequest(BaseModel):
@@ -32,7 +33,6 @@ async def ask(payload: AskRequest, user: User = Depends(get_current_user)) -> As
         rows = session.exec(
             select(JournalEntry).where(JournalEntry.user_id == user.id).order_by(JournalEntry.created_at.desc()).limit(20)
         ).all()
-        text = "\n---\n".join([r.content for r in rows if r and r.content])
+        text = "\n---\n".join([decrypt_text(r.content) for r in rows if r and r.content])
     answer = generate_journal_answer(q, text)
     return AskResponse(answer=answer)
-

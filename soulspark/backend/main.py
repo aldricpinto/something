@@ -4,6 +4,8 @@ import os
 from datetime import date
 
 from fastapi import FastAPI
+from dotenv import load_dotenv, find_dotenv
+from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -17,6 +19,14 @@ from .routes import journal as journal_routes
 from .routes import auth as auth_routes
 from .routes import qa as qa_routes
 from .utils.ai import generate_ai_reflection
+
+# Load environment variables from .env if present (local dev convenience).
+# Be robust to where uvicorn is launched from.
+# 1) Load from current working directory (project root), if any
+load_dotenv(find_dotenv(usecwd=True), override=False)
+# 2) Also load .env that sits next to this file (backend/.env)
+_here_env = Path(__file__).with_name('.env')
+load_dotenv(_here_env, override=False)
 
 app = FastAPI(title="Manna API", version="1.0.0")
 

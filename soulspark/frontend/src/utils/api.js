@@ -55,3 +55,5 @@ export async function askJournal(question){
   const { data } = await api.post('/journal/ask', { question })
   return data
 }
+
+// Mass readings removed for now

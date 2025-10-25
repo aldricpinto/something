@@ -50,6 +50,26 @@ def _sanitize_text(text: str) -> str:
     return s
 
 
+def _sanitize_keep_newlines_and_labels(text: str) -> str:
+    """Remove markdown markers but preserve newlines and keep labels.
+
+    Used for answers that rely on a strict line format (e.g., entry Q&A).
+    """
+    if not text:
+        return ""
+    s = text
+    # Strip formatting markers but keep labels and newlines intact
+    s = re.sub(r"\*\*+", "", s)
+    s = re.sub(r"__+", "", s)
+    s = re.sub(r"`+", "", s)
+    s = re.sub(r"^#+\s*", "", s, flags=re.MULTILINE)
+    # Normalize Windows line endings
+    s = s.replace("\r\n", "\n")
+    # Trim spaces around lines but preserve newlines
+    s = "\n".join(part.strip() for part in s.split("\n"))
+    return s.strip()
+
+
 def generate_ai_reflection(verse_text: str, reference: Optional[str] = None) -> Dict[str, str]:
     model = _get_model()
     prompt = (
@@ -187,6 +207,43 @@ def generate_journal_answer(question: str, entries_text: str) -> str:
         return _sanitize_text(raw)
     except Exception:
         return _sanitize_text("Seek the Lord in prayer and Scripture today; Psalm 34:17-18 reminds us that He is near to the brokenhearted and saves those crushed in spirit.")
+
+
+def generate_entry_answer(question: str, entry_text: str) -> str:
+    """Answer a question based on a single journal entry.
+
+    Output format (exactly three lines):
+    Book Chapter:Verse — <full Bible text>
+    Reflection: <reflection text>
+    Encouragement: <encouragement text>
+    """
+    model = _get_model()
+    prompt = (
+        f"{SYSTEM_PROMPT}\n\n"
+        "Task: Using the user's single journal entry as context, answer their question strictly in this 3-line format:\n"
+        "1) Book Chapter:Verse — <full Bible text>\n"
+        "2) Reflection: <your brief reflection (1–3 sentences)>\n"
+        "3) Encouragement: <one sentence of encouragement>\n"
+        "- Do NOT use markdown or extra labels.\n"
+        "- Choose a fitting verse and include the full verse text on line 1.\n\n"
+        f"Journal Entry:\n{entry_text}\n\nQuestion: {question}"
+    )
+    if model is None:
+        return _sanitize_text(
+            "John 14:27 — Peace I leave with you; my peace I give you.\n"
+            "Reflection: God offers real peace even amid anxious thoughts; bring them to Him.\n"
+            "Encouragement: Take courage—Christ’s peace can steady your heart today."
+        )
+    try:
+        resp = model.generate_content(prompt)
+        raw = resp.text.strip() if hasattr(resp, "text") else ""
+        return _sanitize_keep_newlines_and_labels(raw)
+    except Exception:
+        return _sanitize_keep_newlines_and_labels(
+            "Philippians 4:6–7 — Do not be anxious about anything… and the peace of God… will guard your hearts.\n"
+            "Reflection: God invites you to pray honestly and receive His guarding peace.\n"
+            "Encouragement: Hand today’s burden to Him—He is near and faithful."
+        )
 
 
 def generate_mass_reflection(readings_text: str) -> Dict[str, str]:

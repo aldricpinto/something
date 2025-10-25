@@ -51,8 +51,9 @@ export async function authWithGoogle(id_token){
   return data
 }
 
-export async function askJournal(question){
-  const { data } = await api.post('/journal/ask', { question })
+export async function askJournal(question, entryId){
+  const body = entryId ? { question, entry_id: entryId } : { question }
+  const { data } = await api.post('/journal/ask', body)
   return data
 }
 

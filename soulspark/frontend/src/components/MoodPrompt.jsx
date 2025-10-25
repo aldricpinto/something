@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { getEncouragement } from '../utils/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import { fadeInUp, fadeIn, pop, spring } from '../utils/anim'
+import MicButton from './MicButton'
 
 const moods = ['anxious','grateful','hopeful','tired','lonely','stressed']
 
@@ -10,6 +11,7 @@ export default function MoodPrompt(){
   const [text, setText] = useState('')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const inputRef = useRef(null)
 
   async function submit(){
     if(!mood && !text) return
@@ -27,6 +29,7 @@ export default function MoodPrompt(){
 function MoodDropdown({ mood, setMood }){
   const [open, setOpen] = useState(false)
   const wrapRef = React.useRef(null)
+  const [direction, setDirection] = useState('down') // 'down' or 'up'
 
   function toggle(){ setOpen(o=>!o) }
   function choose(val){ setMood(val); setOpen(false) }
@@ -46,6 +49,32 @@ function MoodDropdown({ mood, setMood }){
     return ()=>{
       document.removeEventListener('mousedown', onDocClick)
       document.removeEventListener('keydown', onKey)
+    }
+  },[open])
+
+  // Decide whether to open up or down depending on viewport space
+  React.useEffect(()=>{
+    function recalc(){
+      const el = wrapRef.current
+      if(!el) return
+      const rect = el.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      const needed = 220 // approx menu height
+      if(spaceBelow >= needed || spaceBelow >= spaceAbove){
+        setDirection('down')
+      }else{
+        setDirection('up')
+      }
+    }
+    recalc()
+    if(open){
+      window.addEventListener('resize', recalc)
+      window.addEventListener('scroll', recalc, true)
+    }
+    return ()=>{
+      window.removeEventListener('resize', recalc)
+      window.removeEventListener('scroll', recalc, true)
     }
   },[open])
 
@@ -69,7 +98,7 @@ function MoodDropdown({ mood, setMood }){
             animate={{opacity:1, y:0}}
             exit={{opacity:0, y:6}}
             transition={spring}
-            className="absolute z-30 bottom-full mb-2 w-full md:w-72 rounded-xl overflow-hidden border border-white/10 shadow-xl"
+            className={`absolute z-30 ${direction==='up' ? 'bottom-full mb-2' : 'top-full mt-2'} w-full md:w-72 rounded-xl overflow-hidden border border-white/10 shadow-xl`}
           >
             <div className="bg-slate-900/95 backdrop-blur max-h-60 overflow-auto overscroll-contain">
               <button onClick={clear} className="w-full text-left px-3 py-2 text-white/80 hover:bg-white/10">No mood</button>
@@ -96,15 +125,21 @@ function MoodDropdown({ mood, setMood }){
       <motion.div className="glass p-4 md:p-6" variants={pop} initial="hidden" animate="show" transition={spring}>
         <div className="text-white/80 mb-3">How's your heart today?</div>
         <MoodDropdown mood={mood} setMood={setMood} />
-        <div className="flex gap-2">
-          <input value={text} onChange={e=> setText(e.target.value)} placeholder="Share what's on your heart..." className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/20" />
-          <motion.button whileHover={{scale:1.02}} whileTap={{scale:0.98}} onClick={submit} className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-400/60 via-purple-400/60 to-yellow-300/60 text-slate-900 font-semibold">Let's Pray</motion.button>
+        <div className="flex gap-2 items-center">
+          <input ref={inputRef} value={text} onChange={e=> setText(e.target.value)} placeholder="Share what's on your heart..." className="input" />
+          <MicButton onResult={(t)=> { setText(prev=> (prev? prev+ ' ' : '') + t); inputRef.current?.focus() }} />
+          <motion.button whileHover={{scale:1.02}} whileTap={{scale:0.98}} onClick={submit} className="btn btn-primary px-4 py-2">Share</motion.button>
         </div>
       </motion.div>
 
       <AnimatePresence>
         {loading && (
-          <motion.div variants={fadeIn} initial="hidden" animate="show" exit="exit" className="glass p-6 mt-4 text-center">Praying...</motion.div>
+          <motion.div variants={fadeIn} initial="hidden" animate="show" exit="exit" className="glass p-6 mt-4 text-center flex items-center justify-center gap-2">
+            <motion.span className="inline-block w-2 h-2 rounded-full bg-white/60" animate={{scale:[1,1.3,1], opacity:[.5,1,.5]}} transition={{repeat:Infinity, duration:1, ease:'easeInOut'}} />
+            <motion.span className="inline-block w-2 h-2 rounded-full bg-white/60" animate={{scale:[1,1.3,1], opacity:[.5,1,.5]}} transition={{repeat:Infinity, duration:1, ease:'easeInOut', delay:.2}} />
+            <motion.span className="inline-block w-2 h-2 rounded-full bg-white/60" animate={{scale:[1,1.3,1], opacity:[.5,1,.5]}} transition={{repeat:Infinity, duration:1, ease:'easeInOut', delay:.4}} />
+            <span>Praying...</span>
+          </motion.div>
         )}
       </AnimatePresence>
 

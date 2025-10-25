@@ -1,0 +1,19 @@
+name: Keep backend warm (15m)
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # every 15 minutes (UTC)
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Curl /verse/today
+        run: |
+          if [ -z "${{ secrets.PING_URL }}" ]; then
+            echo "PING_URL secret not set; skipping" && exit 0
+          fi
+          echo "Pinging ${{ secrets.PING_URL }}"
+          curl -fsS "${{ secrets.PING_URL }}" || true
+
